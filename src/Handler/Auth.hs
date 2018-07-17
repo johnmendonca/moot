@@ -159,3 +159,27 @@ getSignoutR :: Handler Html
 getSignoutR = do
   deleteLoginData
   redirect HomeR
+
+getForgotR :: Handler Html
+getForgotR = do
+  redirectIfLoggedIn HomeR
+  (forgotFormWidget, _) <- generateFormPost forgotForm
+  renderForgot forgotFormWidget []
+
+postForgotR :: Handler Html
+postForgotR = do
+  redirectIfLoggedIn HomeR
+  ((result, widget), _) <- runFormPost forgotForm
+  case result of
+    FormSuccess email -> do
+      maybeUP <- runDB $ getUserByEmail email
+      case maybeUP of
+        (Just _) -> do
+          -- update user with reset token
+          -- generate reset link with token
+          -- send link in email
+          renderNotice "Success" ["Please check your email to reset your password."]
+        Nothing -> do
+          renderForgot widget ["This user does not exist."]
+    _ -> renderForgot widget []
+

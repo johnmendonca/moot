@@ -22,3 +22,9 @@ signupForm =
     SignupForm
       <$> areq emailField' (named "email" (placeheld "Email: ")) Nothing
       <*> areq passwordField (named "password" (placeheld "Password: ")) Nothing
+
+forgotForm :: Form Email
+forgotForm =
+  renderDivs $
+    areq emailField' (named "email" (placeheld "Email")) Nothing
+
