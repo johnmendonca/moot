@@ -46,5 +46,5 @@ renderLogin widget formErrors = do
         <form action="@{LoginR}" method="POST">
           ^{widget}
           <p>
-            <input data-disable-with="Login" name="commit" type="submit" value="Login">
+            <input .button data-disable-with="Login" name="commit" type="submit" value="Login">
 |]
