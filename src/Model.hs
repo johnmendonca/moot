@@ -36,6 +36,8 @@ Password sql=passwords
 Reset sql=resets
   token Text
   user UserId
+  UniqueToken token
+  deriving Eq Show
 
 Account sql=accounts
   owner OwnerId

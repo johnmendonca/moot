@@ -73,6 +73,28 @@ renderForgot widget formErrors = do
           <input .button type="submit" value="Submit">
 |]
 
+renderReset :: Widget -> Text -> [Text] -> Handler Html
+renderReset widget token formErrors = do
+  baseLayout Nothing $ do
+    setTitle "Reset Password"
+    [whamlet|
+<article .grid-container>
+  <div .grid-x .grid-margin-x>
+    <div .medium-6 .cell>
+      <h1>Reset Password
+      $if not (null formErrors)
+        <div data-abide-error
+             class="alert callout">
+            <p>
+              <i class="fi-alert"></i>
+              $forall errMsg <- formErrors
+                <span.error>#{errMsg}
+      <div>
+        <form method="POST" action="@{ResetR token}">
+          ^{widget}
+          <input .button type="submit" value="Submit">
+|]
+
 renderNotice :: Text -> [Text] -> Handler Html
 renderNotice header messages = do
   baseLayout Nothing $ do

@@ -183,3 +183,24 @@ postForgotR = do
           renderForgot widget ["This user does not exist."]
     _ -> renderForgot widget []
 
+getResetR :: Text -> Handler Html
+getResetR token = do
+  redirectIfLoggedIn HomeR
+  maybeUser <- runDB $ do
+    maybeReset <- getBy $ UniqueToken token
+    case maybeReset of
+      (Just (Entity _ reset)) ->
+        get (resetUser reset)
+      Nothing ->
+        return Nothing
+  case maybeUser of
+    (Just _) -> do
+      (resetFormWidget, _) <- generateFormPost resetForm
+      renderReset resetFormWidget token []
+    Nothing ->
+      redirect HomeR
+
+postResetR :: Text -> Handler Html
+postResetR token = do
+  redirectIfLoggedIn HomeR
+  redirect HomeR
