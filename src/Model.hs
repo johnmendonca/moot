@@ -33,6 +33,10 @@ Password sql=passwords
   hash BCrypt
   user UserId
 
+Reset sql=resets
+  token Text
+  user UserId
+
 Account sql=accounts
   owner OwnerId
   UniqueAccountOwnerId owner

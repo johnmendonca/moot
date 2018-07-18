@@ -174,8 +174,8 @@ postForgotR = do
     FormSuccess email -> do
       maybeUP <- runDB $ getUserByEmail email
       case maybeUP of
-        (Just _) -> do
-          -- update user with reset token
+        (Just (Entity userKey _)) -> do
+          reset <- runDB $ createReset userKey
           -- generate reset link with token
           -- send link in email
           renderNotice "Success" ["Please check your email to reset your password."]
