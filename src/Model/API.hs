@@ -162,6 +162,20 @@ createUser email pass = do
   _ <- insert (Password hash userId)
   return (Entity userId newUser)
 
+getUserByResetToken :: Text -> DB (Maybe (Entity User))
+getUserByResetToken token =
+  selectFirst $
+  from $ \(r, u) -> do
+  where_ (r ^. ResetUser ==. u ^. UserId &&. r ^. ResetToken ==. val token)
+  return u
+
+getUserPasswordByResetToken :: Text -> DB (Maybe (Entity User, Entity Password))
+getUserPasswordByResetToken token =
+  selectFirst $
+  from $ \(r, u, p) -> do
+  where_ (r ^. ResetUser ==. u ^. UserId &&. p ^. PasswordUser ==. u ^. UserId &&. r ^. ResetToken ==. val token)
+  return (u, p)
+
 -- Probably this can be simiplied using plain random numbers
 createReset :: UserId -> DB (Entity Reset)
 createReset userKey = do

@@ -8,6 +8,8 @@ import Handler.Sessions
 import Helpers.Forms
 import Helpers.Views
 
+import qualified Database.Persist as P
+
 redirectIfLoggedIn :: (RedirectUrl App r) => r -> Handler ()
 redirectIfLoggedIn r = do
   maybeUser <- getUser
@@ -175,9 +177,10 @@ postForgotR = do
       maybeUP <- runDB $ getUserByEmail email
       case maybeUP of
         (Just (Entity userKey _)) -> do
-          reset <- runDB $ createReset userKey
-          -- generate reset link with token
+          -- check for existing reset token for user
+          (Entity _ (Reset token _)) <- runDB $ createReset userKey
           -- send link in email
+          $logInfo token
           renderNotice "Success" ["Please check your email to reset your password."]
         Nothing -> do
           renderForgot widget ["This user does not exist."]
@@ -186,13 +189,7 @@ postForgotR = do
 getResetR :: Text -> Handler Html
 getResetR token = do
   redirectIfLoggedIn HomeR
-  maybeUser <- runDB $ do
-    maybeReset <- getBy $ UniqueToken token
-    case maybeReset of
-      (Just (Entity _ reset)) ->
-        get (resetUser reset)
-      Nothing ->
-        return Nothing
+  maybeUser <- runDB $ getUserByResetToken token
   case maybeUser of
     (Just _) -> do
       (resetFormWidget, _) <- generateFormPost resetForm
@@ -203,4 +200,25 @@ getResetR token = do
 postResetR :: Text -> Handler Html
 postResetR token = do
   redirectIfLoggedIn HomeR
-  redirect HomeR
+  maybeUserPassword <- runDB $ getUserPasswordByResetToken token
+  case maybeUserPassword of
+    (Just (_, Entity passwordKey _)) -> do
+      ((result, _), _) <- runFormPost resetForm
+      case result of
+        FormSuccess resetFormData -> do
+          if resetPassword resetFormData == resetConfirm resetFormData
+          then do
+            newPasswordHash <- liftIO $ hashPassword (resetPassword resetFormData)
+            runDB $ do
+              P.update passwordKey [PasswordHash P.=. newPasswordHash]
+              P.deleteBy $ UniqueToken token
+            (loginFormWidget, _) <- generateFormPost loginForm
+            renderLogin loginFormWidget []
+          else do
+            (resetFormWidget, _) <- generateFormPost resetForm
+            renderReset resetFormWidget token ["Passwords do not match"]
+        _ -> do
+          (resetFormWidget, _) <- generateFormPost resetForm
+          renderReset resetFormWidget token []
+    Nothing ->
+      redirect HomeR
