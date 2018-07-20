@@ -11,9 +11,11 @@ import Database.Esqueleto.Internal.Sql as Export (SqlQuery)
 
 import Model as Export
 
-import qualified Crypto.Hash.SHA1 as SHA1
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Base16 as B16
+import System.Random (mkStdGen, randomRs)
+import Data.Time.Clock (diffTimeToPicoseconds)
+import qualified Crypto.Hash.SHA1 as SHA1 (hash)
+import qualified Data.ByteString as B (pack)
+import qualified Data.ByteString.Base16 as B16 (encode)
 
 getOwnerForUser :: UserId -> DB (Maybe (Entity Owner))
 getOwnerForUser userId = getRecByField OwnerUser userId
@@ -176,11 +178,12 @@ getUserPasswordByResetToken token =
   where_ (r ^. ResetUser ==. u ^. UserId &&. p ^. PasswordUser ==. u ^. UserId &&. r ^. ResetToken ==. val token)
   return (u, p)
 
--- Probably this can be simiplied using plain random numbers
 createReset :: UserId -> DB (Entity Reset)
 createReset userKey = do
-  token <- liftIO $ B16.encode . SHA1.hash . B.pack . show <$> getCurrentTime
-  reset <- insertEntity $ Reset (decodeUtf8 token) userKey
+  token <- liftIO $ decodeUtf8 . B16.encode . SHA1.hash . B.pack . take 40 <$> do
+    seed <- fromIntegral . diffTimeToPicoseconds . utctDayTime <$> getCurrentTime
+    return $ randomRs (0, 255 :: Word8) (mkStdGen seed)
+  reset <- insertEntity $ Reset token userKey
   return reset
 
 createOwner :: UserId -> DB (Entity Owner)
