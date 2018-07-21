@@ -164,14 +164,14 @@ createUser email pass = do
   _ <- insert (Password hash userId)
   return (Entity userId newUser)
 
-getUserByResetToken :: Text -> DB (Maybe (Entity User))
+getUserByResetToken :: Token -> DB (Maybe (Entity User))
 getUserByResetToken token =
   selectFirst $
   from $ \(r, u) -> do
   where_ (r ^. ResetUser ==. u ^. UserId &&. r ^. ResetToken ==. val token)
   return u
 
-getUserPasswordByResetToken :: Text -> DB (Maybe (Entity User, Entity Password))
+getUserPasswordByResetToken :: Token -> DB (Maybe (Entity User, Entity Password))
 getUserPasswordByResetToken token =
   selectFirst $
   from $ \(r, u, p) -> do
@@ -183,7 +183,7 @@ createReset userKey = do
   token <- liftIO $ decodeUtf8 . B16.encode . SHA1.hash . B.pack . take 40 <$> do
     seed <- fromIntegral . diffTimeToPicoseconds . utctDayTime <$> getCurrentTime
     return $ randomRs (0, 255 :: Word8) (mkStdGen seed)
-  reset <- insertEntity $ Reset token userKey
+  reset <- insertEntity $ Reset (Token token) userKey
   return reset
 
 createOwner :: UserId -> DB (Entity Owner)

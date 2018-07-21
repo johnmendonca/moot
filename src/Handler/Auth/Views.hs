@@ -73,7 +73,7 @@ renderForgot widget formErrors = do
           <input .button type="submit" value="Submit">
 |]
 
-renderReset :: Widget -> Text -> [Text] -> Handler Html
+renderReset :: Widget -> Token -> [Text] -> Handler Html
 renderReset widget token formErrors = do
   baseLayout Nothing $ do
     setTitle "Reset Password"

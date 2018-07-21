@@ -34,7 +34,7 @@ Password sql=passwords
   user UserId
 
 Reset sql=resets
-  token Text
+  token Token
   user UserId
   UniqueToken token
   deriving Eq Show

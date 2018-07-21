@@ -180,13 +180,13 @@ postForgotR = do
           -- check for existing reset token for user
           (Entity _ (Reset token _)) <- runDB $ createReset userKey
           -- send link in email
-          $logInfo token
+          $logInfo $ tokenText token
           renderNotice "Success" ["Please check your email to reset your password."]
         Nothing -> do
           renderForgot widget ["This user does not exist."]
     _ -> renderForgot widget []
 
-getResetR :: Text -> Handler Html
+getResetR :: Token -> Handler Html
 getResetR token = do
   redirectIfLoggedIn HomeR
   maybeUser <- runDB $ getUserByResetToken token
@@ -197,7 +197,7 @@ getResetR token = do
     Nothing ->
       redirect HomeR
 
-postResetR :: Text -> Handler Html
+postResetR :: Token -> Handler Html
 postResetR token = do
   redirectIfLoggedIn HomeR
   maybeUserPassword <- runDB $ getUserPasswordByResetToken token
