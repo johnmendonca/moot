@@ -179,6 +179,13 @@ getUserPasswordByResetToken token =
   where_ (r ^. ResetUser ==. u ^. UserId &&. p ^. PasswordUser ==. u ^. UserId &&. r ^. ResetToken ==. val token)
   return (u, p)
 
+resetUserPassword :: Token -> Text -> DB ()
+resetUserPassword token newPassword = do
+  (Just (_, Entity passwordKey _)) <- getUserPasswordByResetToken token
+  newPasswordHash <- liftIO $ hashPassword newPassword
+  P.update passwordKey [PasswordHash P.=. newPasswordHash]
+  P.deleteBy $ UniqueToken token
+
 createReset :: UserId -> DB (Entity Reset)
 createReset userKey = do
   time <- liftIO getCurrentTime

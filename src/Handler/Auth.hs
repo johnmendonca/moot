@@ -8,8 +8,6 @@ import Handler.Sessions
 import Helpers.Forms
 import Helpers.Views
 
-import qualified Database.Persist as P
-
 redirectIfLoggedIn :: (RedirectUrl App r) => r -> Handler ()
 redirectIfLoggedIn r = do
   maybeUser <- getUser
@@ -207,16 +205,13 @@ postResetR token = do
     deleteOldResets
     getUserPasswordByResetToken token
   case maybeUserPassword of
-    (Just (_, Entity passwordKey _)) -> do
+    (Just _) -> do
       ((result, _), _) <- runFormPost resetForm
       case result of
         FormSuccess resetFormData -> do
           if resetPassword resetFormData == resetConfirm resetFormData
           then do
-            newPasswordHash <- liftIO $ hashPassword (resetPassword resetFormData)
-            runDB $ do
-              P.update passwordKey [PasswordHash P.=. newPasswordHash]
-              P.deleteBy $ UniqueToken token
+            runDB $ resetUserPassword token (resetPassword resetFormData)
             (loginFormWidget, _) <- generateFormPost loginForm
             renderLogin loginFormWidget []
           else do
