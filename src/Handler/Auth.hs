@@ -177,8 +177,9 @@ postForgotR = do
       maybeUP <- runDB $ getUserByEmail email
       case maybeUP of
         (Just (Entity userKey _)) -> do
-          -- check for existing reset token for user
-          (Entity _ (Reset token _)) <- runDB $ createReset userKey
+          (Entity _ (Reset token _ _)) <- runDB $ do
+            deleteExistingResets userKey
+            createReset userKey
           -- send link in email
           $logInfo $ tokenText token
           renderNotice "Success" ["Please check your email to reset your password."]
@@ -189,7 +190,9 @@ postForgotR = do
 getResetR :: Token -> Handler Html
 getResetR token = do
   redirectIfLoggedIn HomeR
-  maybeUser <- runDB $ getUserByResetToken token
+  maybeUser <- runDB $ do
+    deleteOldResets
+    getUserByResetToken token
   case maybeUser of
     (Just _) -> do
       (resetFormWidget, _) <- generateFormPost resetForm
@@ -200,7 +203,9 @@ getResetR token = do
 postResetR :: Token -> Handler Html
 postResetR token = do
   redirectIfLoggedIn HomeR
-  maybeUserPassword <- runDB $ getUserPasswordByResetToken token
+  maybeUserPassword <- runDB $ do
+    deleteOldResets
+    getUserPasswordByResetToken token
   case maybeUserPassword of
     (Just (_, Entity passwordKey _)) -> do
       ((result, _), _) <- runFormPost resetForm

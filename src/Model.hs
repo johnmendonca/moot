@@ -35,6 +35,7 @@ Password sql=passwords
 
 Reset sql=resets
   token Token
+  createdAt UTCTime
   user UserId
   UniqueToken token
   deriving Eq Show

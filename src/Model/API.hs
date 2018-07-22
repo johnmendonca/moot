@@ -11,11 +11,12 @@ import Database.Esqueleto.Internal.Sql as Export (SqlQuery)
 
 import Model as Export
 
+import Data.Time.Clock
 import System.Random (mkStdGen, randomRs)
-import Data.Time.Clock (diffTimeToPicoseconds)
 import qualified Crypto.Hash.SHA1 as SHA1 (hash)
 import qualified Data.ByteString as B (pack)
 import qualified Data.ByteString.Base16 as B16 (encode)
+import qualified Database.Persist as P
 
 getOwnerForUser :: UserId -> DB (Maybe (Entity Owner))
 getOwnerForUser userId = getRecByField OwnerUser userId
@@ -180,11 +181,21 @@ getUserPasswordByResetToken token =
 
 createReset :: UserId -> DB (Entity Reset)
 createReset userKey = do
-  token <- liftIO $ decodeUtf8 . B16.encode . SHA1.hash . B.pack . take 40 <$> do
-    seed <- fromIntegral . diffTimeToPicoseconds . utctDayTime <$> getCurrentTime
-    return $ randomRs (0, 255 :: Word8) (mkStdGen seed)
-  reset <- insertEntity $ Reset (Token token) userKey
+  time <- liftIO getCurrentTime
+  let seed   = fromIntegral . diffTimeToPicoseconds . utctDayTime $ time
+      rBytes = randomRs (0, 255 :: Word8) (mkStdGen seed)
+      token  = decodeUtf8 . B16.encode . SHA1.hash . B.pack . take 40 $ rBytes
+  reset <- insertEntity $ Reset (Token token) time userKey
   return reset
+
+deleteOldResets :: DB ()
+deleteOldResets = do
+  oneDayAgo <- liftIO $ addUTCTime (negate nominalDay) <$> getCurrentTime
+  deleteWhere [ResetCreatedAt P.<. oneDayAgo]
+
+deleteExistingResets :: UserId -> DB ()
+deleteExistingResets userId = do
+  deleteWhere [ResetUser P.==. userId]
 
 createOwner :: UserId -> DB (Entity Owner)
 createOwner userKey = do
